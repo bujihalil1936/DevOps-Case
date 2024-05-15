@@ -6,7 +6,7 @@ metadata:
   labels:
     app: &appname website-frontend
   name: *appname
-  namespace: &namespace cert
+  namespace: &namespace website
 spec:
   selector:
     matchLabels:
@@ -37,7 +37,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: &appname website-frontend
-  namespace: cert
+  namespace: website
 spec:
   ports:
     - name: http
