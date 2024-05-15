@@ -1,19 +1,50 @@
-name: Deploy K8s Cert Checker
+name: Docker Build & Push
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
 
 on:
+  
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
 
 jobs:
-  build-and-deploy:
+  build:
+
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-# Set up BuildKit Docker container builder to be able to build
+      # Install the cosign tool except on PR
+      # https://github.com/sigstore/cosign-installer
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@6e04d228eb30da1757ee4e1dd75a0ec73a653e06 #v3.1.1
+        with:
+          cosign-release: 'v2.1.1'
+
+      # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
@@ -53,14 +84,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'latest'
-
-    - name: Update Kubeconfig
-      run: echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-
-    - name: Deploy to Kubernetes
-      run: |
-        kubectl apply -f k8s-cert-checker-deployment.yaml
+  deploy:
+      name: Deploy
+      needs: [ build ]
+      runs-on: ubuntu-latest
+      steps:
+        - name: Set the Kubernetes context
+          uses: azure/k8s-set-context@v3
+          with:
+            method: kubeconfig
+            kubeconfig: ${{secrets.KUBECONFIG}}
+  
+        - name: Checkout source code
+          uses: actions/checkout@v3
+  
+        - name: Deploy to the Kubernetes cluster
+          uses: azure/k8s-deploy@v4
+          with:
+            namespace: website
+            skip-tls-verify: true
+            manifests: |
+              kubernetes/project.yaml
+            images: |
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}          
