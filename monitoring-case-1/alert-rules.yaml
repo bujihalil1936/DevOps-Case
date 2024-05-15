@@ -1,0 +1,33 @@
+additionalPrometheusRules: 
+  - name: my-rule-file
+    groups:
+    - name: AllInstances
+      rules:
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: High Memory Usage on {{ $labels.instance }}
+          description: "Memory usage is above 90% (current value: {{ $value }}%)"
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: High CPU Usage on {{ $labels.instance }}
+          description: "CPU usage is above 80% (current value: {{ $value }}%)"
+      - alert: PodCrashLooping
+        expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} > 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: Pod {{ $labels.pod }} is crashing
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in CrashLoopBackOff for more than 15 minutes."
+
+
+
+

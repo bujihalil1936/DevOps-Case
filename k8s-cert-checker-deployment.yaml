@@ -1,0 +1,50 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: &appname website-frontend
+  name: *appname
+  namespace: &namespace website
+spec:
+  selector:
+    matchLabels:
+      app: *appname
+  template:
+    metadata:
+      labels:
+        app: *appname
+      name: *appname
+      namespace: *namespace
+    spec:
+      containers:
+        - image: ghcr.io/bujihalil1936/DevOps-Case:latest
+          imagePullPolicy: Always
+          name: container-0
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          resources: {}
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+        - name: github-docker-registry
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: &appname website-frontend
+  namespace: website
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+  selector:
+    app: *appname
+  sessionAffinity: None
+  type: ClusterIP
