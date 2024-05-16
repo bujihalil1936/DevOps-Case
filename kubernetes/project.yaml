@@ -47,4 +47,4 @@ spec:
   selector:
     app: *appname
   sessionAffinity: None
-  type: ClusterIP
+  type: LoadBalancer
