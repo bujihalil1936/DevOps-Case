@@ -8,11 +8,10 @@ WORKDIR /app
 COPY . /app
 
 # Install the required libraries
-RUN pip install --no-cache-dir kubernetes flask cryptography
+RUN pip install --no-cache-dir kubernetes flask gunicorn
 
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
 
 # Run the app with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
-
