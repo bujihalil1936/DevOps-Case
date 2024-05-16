@@ -1,15 +1,15 @@
 from kubernetes import client, config
 from flask import Flask, jsonify
 import base64
-import ssl
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 from datetime import datetime
 
 app = Flask(__name__)
 
 def get_certificate_expiry(certificate_pem):
-    certificate = ssl.PEM_cert_to_DER_cert(certificate_pem)
-    x509 = ssl.DER_cert_to_X509(certificate)
-    return x509.get_notAfter().decode('ascii')
+    cert = x509.load_pem_x509_certificate(certificate_pem.encode('utf-8'), default_backend())
+    return cert.not_valid_after.strftime("%Y-%m-%d %H:%M:%S")
 
 def load_kube_config():
     try:
